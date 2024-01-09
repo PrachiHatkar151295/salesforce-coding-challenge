@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <description>Order details are passed to the NPS system via HTTP POST request with the relevant details sent as the request body.</description>
+        <name>NPS_Data_Sync</name>
+        <label>NPS Data Sync</label>
+        <locationX>578</locationX>
+        <locationY>384</locationY>
+        <actionName>SyncNPSData.SyncNPSData</actionName>
+        <actionType>externalService</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>body</name>
+            <value>
+                <elementReference>varPostReqBody</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>SyncNPSData.SyncNPSData</nameSegment>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+        <versionSegment>1</versionSegment>
+    </actionCalls>
+    <apiVersion>59.0</apiVersion>
+    <assignments>
+        <description>Gathering the relevant data from Order records that are to be passed to the NPS system.</description>
+        <name>Parameter_Assignment</name>
+        <label>Parameter Assignment</label>
+        <locationX>578</locationX>
+        <locationY>276</locationY>
+        <assignmentItems>
+            <assignToReference>varPostReqBody.customerEmail</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.BillToContact.Email</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varPostReqBody.orderNumber</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.OrderNumber</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varPostReqBody.sfId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>NPS_Data_Sync</targetReference>
+        </connector>
+    </assignments>
+    <customErrors>
+        <name>Error_Message_Missing_Data</name>
+        <label>Error Message: Missing Data</label>
+        <locationX>50</locationX>
+        <locationY>384</locationY>
+        <customErrorMessages>
+            <errorMessage>Bill To Contact is not populated or the contact record doesn&apos;t have email.</errorMessage>
+            <isFieldError>false</isFieldError>
+        </customErrorMessages>
+    </customErrors>
+    <decisions>
+        <description>Validate that the data required to be sent to the NPS system is not NULL/empty.</description>
+        <name>Validate_Missing_Data</name>
+        <label>Validate: Missing Data</label>
+        <locationX>182</locationX>
+        <locationY>276</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Missing_Data</name>
+            <conditionLogic>or</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.BillToContact.Email</leftValueReference>
+                <operator>EqualTo</operator>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.BillToContact.Id</leftValueReference>
+                <operator>EqualTo</operator>
+            </conditions>
+            <connector>
+                <targetReference>Error_Message_Missing_Data</targetReference>
+            </connector>
+            <label>Missing Data</label>
+        </rules>
+    </decisions>
+    <description>This flow is to synchronize the NPS system with the orders that are fulfilled.</description>
+    <environments>Default</environments>
+    <interviewLabel>SyncNPSSystem {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>SyncNPSSystem</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>254</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Validate_Missing_Data</targetReference>
+        </connector>
+        <doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Status</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Fulfilled</stringValue>
+            </value>
+        </filters>
+        <object>Order</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <scheduledPaths>
+            <connector>
+                <targetReference>Parameter_Assignment</targetReference>
+            </connector>
+            <pathType>AsyncAfterCommit</pathType>
+        </scheduledPaths>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+    <variables>
+        <name>varPostReqBody</name>
+        <apexClass>ExternalService__SyncNPSData_SyncNPSData_IN_body</apexClass>
+        <dataType>Apex</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+</Flow>
